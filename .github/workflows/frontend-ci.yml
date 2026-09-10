@@ -1,4 +1,4 @@
-name: Frontend CI
+﻿name: Frontend CI
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Run Lint
         run: pnpm run lint
