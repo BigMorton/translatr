@@ -1,0 +1,21 @@
+# Environments & Python
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Node & Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# OS & Secrets
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
