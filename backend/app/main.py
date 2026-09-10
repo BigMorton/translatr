@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 from app.services.counter import calculate_sworn_pages
 
 app = FastAPI(title="Translatr API", version="0.1.0")
