@@ -1,6 +1,8 @@
 import io
+import os
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Any
+from google.cloud import vision
 
 from pypdf import PdfReader
 
@@ -21,9 +23,63 @@ class OcrEngine(Protocol):
         """
         ...
 
+class GoogleVisionEngine:
+    """ Production OCR engine powered by Google Cloud Vision API.
+
+    Uses DOCUMENT_TEXT_DETECTION for PDFs and TEXT_DETECTION for images. Returns the extracted text and the number of pages processed.
+    """
+    def __init__(self, client: Any | None = None) -> None:
+        if client:
+            self.client = client
+        else:
+            # Expects GOOGLE_APPLICATION_CREDENTIALS pointing to service_account.json
+            self.client = vision.ImageAnnotatorClient()
+
+    def extract_text(self, file_bytes: bytes, mime_type: str) -> tuple[str, int]:
+        """ Sends raw bytes to Google Vision API for OCR processing. 
+        
+        Returns the extracted text and page count.
+        """
+        image = vision.Image(content=file_bytes)
+
+
+        # Use DOCUMENT_TEXT_DETECTION for text extraction from PDFs and images
+        response = self.client.document_text_detection(image=image)
+
+        if response.error.message:
+            raise RuntimeError(
+                f"Google Vision API error: {response.error.message}"
+            )
+
+        full_text_annotation = response.full_text_annotation
+        extracted_text = (
+            full_text_annotation.text 
+            if full_text_annotation
+            else ""
+        ).strip()
+
+        # --- DEBUG LOGGING ---
+        print("\n" + "=" * 50)
+        print(f"[DEBUG OCR RAW LENGTH]: {len(extracted_text)} chars")
+        print(f"[DEBUG OCR REPR]: {repr(extracted_text)}")
+        print("-" * 50)
+        print(f"[DEBUG OCR TEXT]:\n{extracted_text}")
+        print("=" * 50 + "\n")
+        # ---------------------
+
+
+        # Determine page count based on the number of pages in the response (defaults to 1)
+        phyiscal_pages = (
+            len(full_text_annotation.pages)
+            if (full_text_annotation and full_text_annotation.pages) 
+            else 1
+        )
+
+        return extracted_text, phyiscal_pages
+
 
 class MockOcrEngine:
-    # Mock local OCR engine for testing and dev purposes
+    """ Mock local OCR engine for testing and dev purposes """
     def __init__(self, stub_text: str = "Mock extracted text"):
         self.stub_text = stub_text
 
@@ -31,6 +87,13 @@ class MockOcrEngine:
         # Mock implementation for testing purposes
         return self.stub_text, 1
 
+
+def get_ocr_engine() -> OcrEngine:
+    """Factory function to get the appropriate OCR engine based on environment."""
+    engine_type = os.getenv("OCR_ENGINE", "mock").lower()
+    if engine_type == "google":
+        return GoogleVisionEngine()
+    return MockOcrEngine()
 
 def _extract_text_from_pdf(file_bytes: bytes) -> tuple[str, int]:
     """Extract text from a PDF file using PyPDF."""
@@ -59,9 +122,7 @@ def process_document(
     a certain threshold, fallback to using an OCR engine (for scanned PDFs or images). The threshold is set to 50 characters by default.
     """
     lower_name = filename.lower()
-    ocr = (
-        ocr_engine or MockOcrEngine()
-    )  # Use the provided OCR engine or a mock for testing
+    ocr = ocr_engine if ocr_engine is not None else get_ocr_engine()
 
     # Plain Text Files
     if lower_name.endswith(".txt"):

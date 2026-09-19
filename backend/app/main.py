@@ -1,9 +1,19 @@
+import os
 from fastapi import FastAPI, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from dotenv import load_dotenv
+load_dotenv()
+
+# Debug check: verify on startup what engine is selected
+print(f"--> ACTIVE OCR_ENGINE: {os.getenv('OCR_ENGINE')}")
+print(
+    f"--> GOOGLE CREDENTIALS PATH: {os.getenv('GOOGLE_APPLICATION_CREDENTIALS')}"
+)
 
 from app.services.counter import calculate_sworn_pages
 from app.services.extractor import process_document
+
 
 app = FastAPI(title="Translatr API", version="0.1.0")
 
