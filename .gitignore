@@ -19,3 +19,6 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+*credentials*.json
+service_account.json
+*service_account*.json
